@@ -13,14 +13,16 @@ var _ Logger = (*stdLogger)(nil)
 
 type stdLogger struct {
 	log   *log.Logger
+	level Level
 	pool  *sync.Pool
 	templ string
 }
 
 // NewStdLogger new a logger with writer.
-func NewStdLogger(w io.Writer) Logger {
+func NewStdLogger(w io.Writer, level Level) Logger {
 	l := &stdLogger{
-		log: log.New(w, "", 0),
+		log:   log.New(w, "", 0),
+		level: level,
 		pool: &sync.Pool{
 			New: func() interface{} {
 				return new(bytes.Buffer)
@@ -32,9 +34,10 @@ func NewStdLogger(w io.Writer) Logger {
 	return With(l, "timestamp", DefaultTimestamp, "caller", DefaultCaller)
 }
 
-func NewStdLoggerWithFormat(w io.Writer, fmt string) Logger {
+func NewStdLoggerWithFormat(w io.Writer, level Level, fmt string) Logger {
 	l := &stdLogger{
-		log: log.New(w, "", 0),
+		log:   log.New(w, "", 0),
+		level: level,
 		pool: &sync.Pool{
 			New: func() interface{} {
 				return new(bytes.Buffer)
@@ -55,6 +58,9 @@ func capitalize(s string) string {
 
 // Log print the kv pairs log.
 func (l *stdLogger) Log(level Level, keyvals ...interface{}) error {
+	if level < l.level {
+		return nil
+	}
 	if len(keyvals) == 0 {
 		return nil
 	}
